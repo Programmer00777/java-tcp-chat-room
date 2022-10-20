@@ -5,6 +5,8 @@ import java.io.PrintWriter;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.util.ArrayList;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 /**
  * If a class is runnable, it means that it can be passed to a Thread or Thread pool, and
@@ -18,6 +20,26 @@ import java.util.ArrayList;
  */
 public class Server implements Runnable {
     private ArrayList<ConnectionHandler> connections;
+    private ServerSocket server;
+    private boolean done;
+
+    /**
+     * Now, that we didn't do yet is we didn't run the individual threads. So, now all these handlers need to be run
+     * in a thread pool. A thread pool is basically the number of threads that can be reused all the time, so we don't
+     * need to run a new thread and close. I mean, we don't have to create a new specific thread in order to run a
+     * handler, because we have a lot of different client connections then they disconnect again, whereas the server is
+     * running in one thread all the time, client connections are short-lived oftentimes, and because of that I'm going
+     * to use a thread pool.
+     *
+     * I'm going to define the thread pool locally.
+     */
+    private ExecutorService pool;
+
+
+    public Server() {
+        connections = new ArrayList<>();
+        done = false;
+    }
     /**
      * First, I want to create a ServerSocket for the server itself. All we need to pass to arguments is a port number.
      * And, in here, we have to handle the IOException because it's something we have always work with when we
@@ -31,14 +53,19 @@ public class Server implements Runnable {
     @Override
     public void run() {
         try {
-            ServerSocket server = new ServerSocket(8080);
-            Socket client = server.accept();
-            // Whenever we create a new client, what we want to do is we want to save a new ConnectionHandler.
-            ConnectionHandler handler = new ConnectionHandler(client);
-            connections.add(handler);
+            server = new ServerSocket(8080);
+            pool = Executors.newCachedThreadPool();
+            // We have to always accept connections, so, while done isn't true, we accept them.
+            while (!done) {
+                Socket client = server.accept();
+                // Whenever we create a new client, what we want to do is we want to save a new ConnectionHandler.
+                ConnectionHandler handler = new ConnectionHandler(client);
+                connections.add(handler);
+                // Every time we add a new connection, we want to add it into the thread pool.
+                pool.execute(handler);
+            }
         } catch (IOException e) {
-            // TODO: Handle it
-            throw new RuntimeException(e);
+            shutdown();
         }
     }
 
@@ -52,6 +79,25 @@ public class Server implements Runnable {
                 ch.sendMessage(message);
             }
         }
+    }
+
+    /**
+     * Function that shuts down the server. All I need to do is to shut down the server socket as well as each
+     * individual connection.
+     */
+    public void shutdown() {
+        try {
+            done = true;
+            if (!server.isClosed()) {
+                server.close();
+            }
+            for (ConnectionHandler ch : connections) {
+                ch.shutdown();
+            }
+        } catch (IOException e) {
+            // ignore
+        }
+
     }
 
     class ConnectionHandler implements Runnable {
@@ -115,14 +161,15 @@ public class Server implements Runnable {
                             out.println("No nickname was provided.");
                         }
                     } else if (message.startsWith(("/quit"))) {
-                        // TODO: quit
+                        broadcast(nickname + " left the chat.");
+                        shutdown();
                     } else {
                         // Otherwise, broadcast the message immediately to all the other
                         broadcast(nickname + ": " + message);
                     }
                 }
             } catch (IOException e) {
-                // TODO: Handle it
+                shutdown();
             }
         }
 
@@ -132,6 +179,18 @@ public class Server implements Runnable {
          */
         public void sendMessage(String message) {
             out.println(message);
+        }
+
+        public void shutdown() {
+            try {
+                in.close();
+                out.close();
+                if (!client.isClosed()) {
+                    client.close();
+                }
+            } catch (IOException e) {
+                // ignore
+            }
         }
     }
 }
