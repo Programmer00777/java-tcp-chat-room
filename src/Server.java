@@ -9,13 +9,13 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
 /**
- * If a class is runnable, it means that it can be passed to a Thread or Thread pool, and
+ * If a class is runnable, it means that it can be passed to a <b>Thread</b> or <b>Thread pool</b>, and
  * then can be executed concurrently alongside with other classes that implement the Runnable interface.
- *
+ * <br><br>
  * I'm going to have a server that will constantly listen for incoming connections (so for client
  * requests to connect). Then, it's going to accept these connection requests, and then we're going to
  * open a new connection handler for each client that connects. So, we're going to have an inner class
- * @class ConnectionHandler that handles client connections. I'm going pass a client to it, and then it's
+ * <i>ConnectionHandler</i> that handles client connections. I'm going pass a client to it, and then it's
  * going to handle individual connections.
  */
 public class Server implements Runnable {
@@ -64,7 +64,7 @@ public class Server implements Runnable {
                 // Every time we add a new connection, we want to add it into the thread pool.
                 pool.execute(handler);
             }
-        } catch (IOException e) {
+        } catch (Exception e) {
             shutdown();
         }
     }
@@ -86,8 +86,8 @@ public class Server implements Runnable {
      * individual connection.
      */
     public void shutdown() {
+        done = true;
         try {
-            done = true;
             if (!server.isClosed()) {
                 server.close();
             }
