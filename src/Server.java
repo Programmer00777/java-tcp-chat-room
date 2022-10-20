@@ -149,7 +149,6 @@ public class Server implements Runnable {
                 while ((message = in.readLine()) != null) {
                     // Here I want to implement some commands
                     if (message.startsWith("/nick ")) {
-                        // TODO: handle nickname
                         String[] messageSplit = message.split(" ", 2);
                         if (messageSplit.length == 2) {
                             broadcast(nickname + " renamed themselves to " + messageSplit[1]);
@@ -192,5 +191,13 @@ public class Server implements Runnable {
                 // ignore
             }
         }
+    }
+
+    /**
+     * Now, we want to add a main() function.
+     */
+    public static void main(String[] args) {
+        Server server = new Server();
+        server.run();
     }
 }
