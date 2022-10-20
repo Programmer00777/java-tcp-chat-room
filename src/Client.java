@@ -60,6 +60,7 @@ public class Client implements Runnable {
                 while (!done) {
                     String message = inReader.readLine();
                     if (message.equals("/quit")) {
+                        out.println(message);
                         inReader.close();
                         shutdown();
                     } else {
@@ -70,5 +71,10 @@ public class Client implements Runnable {
                 shutdown();
             }
         }
+    }
+
+    public static void main(String[] args) {
+        Client client = new Client();
+        client.run();
     }
 }

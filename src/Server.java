@@ -88,6 +88,7 @@ public class Server implements Runnable {
     public void shutdown() {
         done = true;
         try {
+            pool.shutdown();
             if (!server.isClosed()) {
                 server.close();
             }
